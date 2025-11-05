@@ -1,7 +1,6 @@
-import { useDB } from '~/server/utils/db'
-import { postVotes, posts } from '~/server/database/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { useFirestore, collections } from '~/server/utils/firestore'
 import { z } from 'zod'
+import { FieldValue } from 'firebase-admin/firestore'
 
 const voteSchema = z.object({
   value: z.number().int().min(-1).max(1) // -1, 0, 1
@@ -19,35 +18,30 @@ export default defineEventHandler(async (event) => {
 
   const postId = getRouterParam(event, 'id')!
   const body = await readValidatedBody(event, voteSchema.parse)
-  const db = useDB()
+  const db = useFirestore()
+
+  const voteId = `${user.uid}_${postId}`
+  const voteRef = db.collection(collections.postVotes).doc(voteId)
+  const postRef = db.collection(collections.posts).doc(postId)
 
   // Get existing vote
-  const existingVote = await db.query.postVotes.findFirst({
-    where: and(
-      eq(postVotes.postId, postId),
-      eq(postVotes.userId, user.uid)
-    )
-  })
+  const voteDoc = await voteRef.get()
+  const existingVote = voteDoc.exists ? voteDoc.data() : null
 
   if (body.value === 0) {
     // Remove vote
     if (existingVote) {
-      await db.delete(postVotes).where(
-        and(
-          eq(postVotes.postId, postId),
-          eq(postVotes.userId, user.uid)
-        )
-      )
+      await voteRef.delete()
 
       // Update post vote counts
       if (existingVote.value === 1) {
-        await db.update(posts)
-          .set({ upvotes: sql`${posts.upvotes} - 1` })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          upvotes: FieldValue.increment(-1)
+        })
       } else {
-        await db.update(posts)
-          .set({ downvotes: sql`${posts.downvotes} - 1` })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          downvotes: FieldValue.increment(-1)
+        })
       }
     }
   } else {
@@ -55,48 +49,41 @@ export default defineEventHandler(async (event) => {
     if (existingVote) {
       // Update existing vote
       const oldValue = existingVote.value
-      await db.update(postVotes)
-        .set({ value: body.value })
-        .where(
-          and(
-            eq(postVotes.postId, postId),
-            eq(postVotes.userId, user.uid)
-          )
-        )
+      await voteRef.update({
+        value: body.value,
+        createdAt: new Date().toISOString()
+      })
 
       // Update post vote counts
       if (oldValue === 1 && body.value === -1) {
-        await db.update(posts)
-          .set({
-            upvotes: sql`${posts.upvotes} - 1`,
-            downvotes: sql`${posts.downvotes} + 1`
-          })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          upvotes: FieldValue.increment(-1),
+          downvotes: FieldValue.increment(1)
+        })
       } else if (oldValue === -1 && body.value === 1) {
-        await db.update(posts)
-          .set({
-            upvotes: sql`${posts.upvotes} + 1`,
-            downvotes: sql`${posts.downvotes} - 1`
-          })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          upvotes: FieldValue.increment(1),
+          downvotes: FieldValue.increment(-1)
+        })
       }
     } else {
       // Create new vote
-      await db.insert(postVotes).values({
+      await voteRef.set({
         postId,
         userId: user.uid,
-        value: body.value
+        value: body.value,
+        createdAt: new Date().toISOString()
       })
 
       // Update post vote counts
       if (body.value === 1) {
-        await db.update(posts)
-          .set({ upvotes: sql`${posts.upvotes} + 1` })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          upvotes: FieldValue.increment(1)
+        })
       } else {
-        await db.update(posts)
-          .set({ downvotes: sql`${posts.downvotes} + 1` })
-          .where(eq(posts.id, postId))
+        await postRef.update({
+          downvotes: FieldValue.increment(1)
+        })
       }
     }
   }

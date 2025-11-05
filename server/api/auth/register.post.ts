@@ -1,5 +1,4 @@
-import { useDB } from '~/server/utils/db'
-import { users } from '~/server/database/schema'
+import { useFirestore, collections } from '~/server/utils/firestore'
 import { z } from 'zod'
 
 const registerSchema = z.object({
@@ -12,18 +11,25 @@ const registerSchema = z.object({
 export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, registerSchema.parse)
 
-  const db = useDB()
+  const db = useFirestore()
+
+  // Check if username is taken
+  const usernameQuery = await db.collection(collections.users)
+    .where('username', '==', body.username)
+    .limit(1)
+    .get()
+
+  if (!usernameQuery.empty) {
+    throw createError({
+      statusCode: 400,
+      message: 'Username already taken'
+    })
+  }
 
   // Check if user already exists
-  const existingUser = await db.query.users.findFirst({
-    where: (users, { eq, or }) => or(
-      eq(users.id, body.uid),
-      eq(users.username, body.username),
-      eq(users.email, body.email)
-    )
-  })
+  const userDoc = await db.collection(collections.users).doc(body.uid).get()
 
-  if (existingUser) {
+  if (userDoc.exists) {
     throw createError({
       statusCode: 400,
       message: 'User already exists'
@@ -31,12 +37,21 @@ export default defineEventHandler(async (event) => {
   }
 
   // Create new user
-  const [newUser] = await db.insert(users).values({
-    id: body.uid,
+  const userData = {
     email: body.email,
     username: body.username,
-    displayName: body.displayName || body.username
-  }).returning()
+    displayName: body.displayName || body.username,
+    avatar: null,
+    bio: null,
+    karma: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 
-  return newUser
+  await db.collection(collections.users).doc(body.uid).set(userData)
+
+  return {
+    id: body.uid,
+    ...userData
+  }
 })

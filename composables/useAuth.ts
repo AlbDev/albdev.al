@@ -1,6 +1,7 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithCustomToken,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User
@@ -10,6 +11,19 @@ export const useAuth = () => {
   const { $auth } = useNuxtApp()
   const user = useState<User | null>('user', () => null)
   const authToken = useState<string | null>('authToken', () => null)
+  const route = useRoute()
+
+  // Handle OAuth callback token
+  onMounted(() => {
+    const token = route.query.token as string
+    if (token) {
+      signInWithCustomToken($auth, token).then(() => {
+        // Remove token from URL
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, '', newUrl)
+      })
+    }
+  })
 
   const signIn = async (email: string, password: string) => {
     try {

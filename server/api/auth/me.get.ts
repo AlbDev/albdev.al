@@ -1,6 +1,4 @@
-import { useDB } from '~/server/utils/db'
-import { users } from '~/server/database/schema'
-import { eq } from 'drizzle-orm'
+import { useFirestore, collections } from '~/server/utils/firestore'
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user
@@ -12,17 +10,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const db = useDB()
-  const dbUser = await db.query.users.findFirst({
-    where: eq(users.id, user.uid)
-  })
+  const db = useFirestore()
+  const userDoc = await db.collection(collections.users).doc(user.uid).get()
 
-  if (!dbUser) {
+  if (!userDoc.exists) {
     throw createError({
       statusCode: 404,
       message: 'User not found'
     })
   }
 
-  return dbUser
+  return {
+    id: userDoc.id,
+    ...userDoc.data()
+  }
 })

@@ -1,5 +1,4 @@
-import { useDB } from '~/server/utils/db'
-import { communities, communityMembers } from '~/server/database/schema'
+import { useFirestore, collections } from '~/server/utils/firestore'
 import { z } from 'zod'
 
 const createCommunitySchema = z.object({
@@ -19,14 +18,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readValidatedBody(event, createCommunitySchema.parse)
-  const db = useDB()
+  const db = useFirestore()
 
   // Check if community name is taken
-  const existing = await db.query.communities.findFirst({
-    where: (communities, { eq }) => eq(communities.name, body.name)
-  })
+  const existingQuery = await db.collection(collections.communities)
+    .where('name', '==', body.name)
+    .limit(1)
+    .get()
 
-  if (existing) {
+  if (!existingQuery.empty) {
     throw createError({
       statusCode: 400,
       message: 'Community name already taken'
@@ -34,20 +34,31 @@ export default defineEventHandler(async (event) => {
   }
 
   // Create community
-  const [newCommunity] = await db.insert(communities).values({
+  const communityRef = db.collection(collections.communities).doc()
+  const communityData = {
     name: body.name,
     displayName: body.displayName,
-    description: body.description,
+    description: body.description || null,
+    icon: null,
+    banner: null,
+    memberCount: 1,
     creatorId: user.uid,
-    memberCount: 1
-  }).returning()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+
+  await communityRef.set(communityData)
 
   // Add creator as admin member
-  await db.insert(communityMembers).values({
+  await db.collection(collections.communityMembers).doc(`${user.uid}_${communityRef.id}`).set({
     userId: user.uid,
-    communityId: newCommunity.id,
-    role: 'admin'
+    communityId: communityRef.id,
+    role: 'admin',
+    joinedAt: new Date().toISOString()
   })
 
-  return newCommunity
+  return {
+    id: communityRef.id,
+    ...communityData
+  }
 })

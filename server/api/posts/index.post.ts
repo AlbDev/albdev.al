@@ -1,5 +1,4 @@
-import { useDB } from '~/server/utils/db'
-import { posts } from '~/server/database/schema'
+import { useFirestore, collections } from '~/server/utils/firestore'
 import { z } from 'zod'
 
 const createPostSchema = z.object({
@@ -7,7 +6,7 @@ const createPostSchema = z.object({
   content: z.string().optional(),
   type: z.enum(['text', 'link', 'image']),
   url: z.string().url().optional(),
-  communityId: z.string().uuid()
+  communityId: z.string()
 })
 
 export default defineEventHandler(async (event) => {
@@ -21,16 +20,29 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readValidatedBody(event, createPostSchema.parse)
-  const db = useDB()
+  const db = useFirestore()
 
-  const [newPost] = await db.insert(posts).values({
+  // Create post
+  const postRef = db.collection(collections.posts).doc()
+  const postData = {
     title: body.title,
-    content: body.content,
+    content: body.content || null,
     type: body.type,
-    url: body.url,
+    url: body.url || null,
     authorId: user.uid,
-    communityId: body.communityId
-  }).returning()
+    communityId: body.communityId,
+    upvotes: 0,
+    downvotes: 0,
+    commentCount: 0,
+    isDeleted: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 
-  return newPost
+  await postRef.set(postData)
+
+  return {
+    id: postRef.id,
+    ...postData
+  }
 })

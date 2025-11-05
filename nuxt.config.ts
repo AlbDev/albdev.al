@@ -16,8 +16,9 @@ export default defineNuxtConfig({
     // Private keys (server-side only)
     firebasePrivateKey: '',
     firebaseClientEmail: '',
-    databaseUrl: '',
-    sessionSecret: '',
+    oauthBaseClientId: '',
+    oauthBaseClientSecret: '',
+    oauthBaseRedirectUri: '',
 
     // Public keys (exposed to client)
     public: {
@@ -26,7 +27,10 @@ export default defineNuxtConfig({
       firebaseProjectId: '',
       firebaseStorageBucket: '',
       firebaseMessagingSenderId: '',
-      firebaseAppId: ''
+      firebaseAppId: '',
+      oauthBaseAuthorizeUrl: '',
+      oauthBaseTokenUrl: '',
+      oauthBaseUserinfoUrl: ''
     }
   },
 
