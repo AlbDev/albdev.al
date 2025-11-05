@@ -34,12 +34,10 @@ export default defineNuxtConfig({
     }
   },
 
+  ssr: false,
+
   nitro: {
-    preset: 'firebase',
-    firebase: {
-      gen: 2,
-      serverFunctionName: 'albdevServer'
-    }
+    preset: 'static'
   },
 
   typescript: {
