@@ -8,7 +8,7 @@
           size="sm"
           variant="ghost"
           :color="userVote === 1 ? 'primary' : 'gray'"
-          @click="vote(1)"
+          @click="handleVote(1)"
         />
         <span class="text-sm font-semibold" :class="voteColor">
           {{ voteCount }}
@@ -18,7 +18,7 @@
           size="sm"
           variant="ghost"
           :color="userVote === -1 ? 'red' : 'gray'"
-          @click="vote(-1)"
+          @click="handleVote(-1)"
         />
       </div>
 
@@ -26,56 +26,42 @@
       <div class="flex-1 p-4">
         <!-- Post Meta -->
         <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
-          <NuxtLink
-            :to="`/r/${post.community.name}`"
-            class="font-semibold hover:underline"
-          >
-            r/{{ post.community.name }}
-          </NuxtLink>
-          <span>•</span>
-          <span>Posted by</span>
-          <NuxtLink
-            :to="`/u/${post.author.username}`"
-            class="hover:underline"
-          >
-            u/{{ post.author.username }}
-          </NuxtLink>
+          <span class="font-semibold">AlbDev</span>
           <span>•</span>
           <span>{{ formatTimeAgo(post.createdAt) }}</span>
         </div>
 
         <!-- Post Title -->
-        <NuxtLink :to="`/r/${post.community.name}/comments/${post.id}`">
-          <h3 class="text-lg font-semibold mb-2 hover:text-primary">
-            {{ post.title }}
-          </h3>
-        </NuxtLink>
+        <h3 class="text-lg font-semibold mb-2">
+          {{ post.title }}
+        </h3>
 
         <!-- Post Content Preview -->
         <p v-if="post.content" class="text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">
           {{ post.content }}
         </p>
 
+        <!-- Post URL -->
+        <a
+          v-if="post.url"
+          :href="post.url"
+          target="_blank"
+          class="text-primary hover:underline text-sm mb-3 block"
+        >
+          {{ post.url }}
+        </a>
+
         <!-- Post Actions -->
         <div class="flex items-center gap-4">
-          <UButton
-            :to="`/r/${post.community.name}/comments/${post.id}`"
-            variant="ghost"
-            size="sm"
-            icon="i-heroicons-chat-bubble-left"
-            :label="`${post.commentCount} Comments`"
-          />
+          <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+            <UIcon name="i-heroicons-chat-bubble-left" class="w-4 h-4" />
+            <span class="text-sm">{{ post.commentCount || 0 }} Comments</span>
+          </div>
           <UButton
             variant="ghost"
             size="sm"
             icon="i-heroicons-share"
             label="Share"
-          />
-          <UButton
-            variant="ghost"
-            size="sm"
-            icon="i-heroicons-bookmark"
-            label="Save"
           />
         </div>
       </div>
@@ -84,15 +70,17 @@
 </template>
 
 <script setup lang="ts">
+import { doc, updateDoc, setDoc, deleteDoc, getDoc, increment } from 'firebase/firestore'
+
 const props = defineProps<{
   post: any
 }>()
 
 const { user } = useAuth()
-const { apiFetch } = useApi()
+const { $firestore } = useNuxtApp()
 const userVote = ref(0)
 
-const voteCount = computed(() => props.post.upvotes - props.post.downvotes)
+const voteCount = computed(() => (props.post.upvotes || 0) - (props.post.downvotes || 0))
 
 const voteColor = computed(() => {
   if (userVote.value === 1) return 'text-primary'
@@ -100,23 +88,63 @@ const voteColor = computed(() => {
   return 'text-gray-700 dark:text-gray-300'
 })
 
-const vote = async (value: number) => {
+const handleVote = async (value: number) => {
   if (!user.value) {
-    // Show login modal
+    alert('Please sign in to vote')
     return
   }
 
   const newVote = userVote.value === value ? 0 : value
+  const voteId = `${user.value.uid}_${props.post.id}`
 
   try {
-    await apiFetch(`/api/posts/${props.post.id}/vote`, {
-      method: 'POST',
-      body: { value: newVote }
-    })
+    const postRef = doc($firestore, 'posts', props.post.id)
+    const voteRef = doc($firestore, 'postVotes', voteId)
+
+    if (newVote === 0) {
+      // Remove vote
+      await deleteDoc(voteRef)
+      if (userVote.value === 1) {
+        await updateDoc(postRef, { upvotes: increment(-1) })
+      } else {
+        await updateDoc(postRef, { downvotes: increment(-1) })
+      }
+    } else {
+      // Add or update vote
+      await setDoc(voteRef, {
+        userId: user.value.uid,
+        postId: props.post.id,
+        value: newVote,
+        createdAt: new Date().toISOString()
+      })
+
+      if (userVote.value === 0) {
+        // New vote
+        if (newVote === 1) {
+          await updateDoc(postRef, { upvotes: increment(1) })
+        } else {
+          await updateDoc(postRef, { downvotes: increment(1) })
+        }
+      } else {
+        // Change vote
+        if (newVote === 1) {
+          await updateDoc(postRef, {
+            upvotes: increment(1),
+            downvotes: increment(-1)
+          })
+        } else {
+          await updateDoc(postRef, {
+            upvotes: increment(-1),
+            downvotes: increment(1)
+          })
+        }
+      }
+    }
 
     userVote.value = newVote
   } catch (error) {
     console.error('Vote failed:', error)
+    alert('Failed to vote. Please try again.')
   }
 }
 
@@ -128,4 +156,21 @@ const formatTimeAgo = (date: string) => {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
 }
+
+// Load user's vote on mount
+onMounted(async () => {
+  if (user.value) {
+    try {
+      const voteId = `${user.value.uid}_${props.post.id}`
+      const voteRef = doc($firestore, 'postVotes', voteId)
+      const voteDoc = await getDoc(voteRef)
+
+      if (voteDoc.exists()) {
+        userVote.value = voteDoc.data().value
+      }
+    } catch (error) {
+      console.error('Failed to load vote:', error)
+    }
+  }
+})
 </script>

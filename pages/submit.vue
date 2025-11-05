@@ -97,17 +97,33 @@
 </template>
 
 <script setup lang="ts">
+import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore'
+
 definePageMeta({
   layout: 'default',
   middleware: 'auth'
 })
 
 const { user } = useAuth()
-const { apiFetch } = useApi()
+const { $firestore } = useNuxtApp()
 const router = useRouter()
 
 const loading = ref(false)
-const { data: communities } = await useFetch('/api/communities')
+const communities = ref([])
+
+// Fetch communities from Firestore
+onMounted(async () => {
+  const communitiesQuery = query(
+    collection($firestore, 'communities'),
+    orderBy('memberCount', 'desc'),
+    limit(50)
+  )
+  const communitiesSnapshot = await getDocs(communitiesQuery)
+  communities.value = communitiesSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+})
 
 const communityOptions = computed(() =>
   communities.value?.map(c => ({
@@ -131,38 +147,39 @@ const formData = reactive({
 })
 
 const canSubmit = computed(() => {
-  if (!formData.communityId || !formData.title) return false
+  if (!user.value || !formData.communityId || !formData.title) return false
   if (formData.type === 'link' && !formData.url) return false
   if (formData.type === 'image' && !formData.url) return false
   return true
 })
 
 const handleSubmit = async () => {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || !user.value) return
 
   loading.value = true
 
   try {
-    const post = await apiFetch('/api/posts', {
-      method: 'POST',
-      body: {
-        communityId: formData.communityId,
-        type: formData.type,
-        title: formData.title,
-        content: formData.content || undefined,
-        url: formData.url || undefined
-      }
+    // Create post in Firestore
+    const postRef = await addDoc(collection($firestore, 'posts'), {
+      title: formData.title,
+      content: formData.content || null,
+      type: formData.type,
+      url: formData.url || null,
+      authorId: user.value.uid,
+      communityId: formData.communityId,
+      upvotes: 0,
+      downvotes: 0,
+      commentCount: 0,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     })
 
-    // Navigate to the new post
-    const community = communities.value?.find(c => c.id === formData.communityId)
-    if (community && post) {
-      router.push(`/r/${community.name}/comments/${post.id}`)
-    } else {
-      router.push('/')
-    }
+    // Navigate to home page
+    router.push('/')
   } catch (error) {
     console.error('Failed to create post:', error)
+    alert('Failed to create post. Please try again.')
   } finally {
     loading.value = false
   }

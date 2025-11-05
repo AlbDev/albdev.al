@@ -78,6 +78,8 @@
 </template>
 
 <script setup lang="ts">
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
+
 definePageMeta({
   layout: 'default'
 })
@@ -89,6 +91,40 @@ const feedFilters = [
   { value: 'top', label: 'Top', icon: 'i-heroicons-arrow-trending-up' }
 ]
 
-const { data: posts, pending } = await useFetch('/api/posts')
-const { data: communities } = await useFetch('/api/communities')
+const { $firestore } = useNuxtApp()
+const posts = ref([])
+const communities = ref([])
+const pending = ref(true)
+
+// Fetch posts from Firestore
+onMounted(async () => {
+  try {
+    const postsQuery = query(
+      collection($firestore, 'posts'),
+      orderBy('createdAt', 'desc'),
+      limit(25)
+    )
+    const postsSnapshot = await getDocs(postsQuery)
+    posts.value = postsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+
+    // Fetch communities
+    const communitiesQuery = query(
+      collection($firestore, 'communities'),
+      orderBy('memberCount', 'desc'),
+      limit(10)
+    )
+    const communitiesSnapshot = await getDocs(communitiesQuery)
+    communities.value = communitiesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    pending.value = false
+  }
+})
 </script>
