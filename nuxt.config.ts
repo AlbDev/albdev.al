@@ -13,24 +13,17 @@ export default defineNuxtConfig({
   ],
 
   runtimeConfig: {
-    // Private keys (server-side only)
-    firebasePrivateKey: '',
-    firebaseClientEmail: '',
-    oauthBaseClientId: '',
-    oauthBaseClientSecret: '',
-    oauthBaseRedirectUri: '',
-
-    // Public keys (exposed to client)
+    // Public keys (exposed to client) - hardcoded for static build
     public: {
-      firebaseApiKey: '',
-      firebaseAuthDomain: '',
-      firebaseProjectId: '',
-      firebaseStorageBucket: '',
-      firebaseMessagingSenderId: '',
-      firebaseAppId: '',
-      oauthBaseAuthorizeUrl: '',
-      oauthBaseTokenUrl: '',
-      oauthBaseUserinfoUrl: ''
+      firebaseApiKey: 'AIzaSyDSeTvW6CbgBjRUfzG734CVuC54pv9iajM',
+      firebaseAuthDomain: 'albaniandotdev.firebaseapp.com',
+      firebaseProjectId: 'albaniandotdev',
+      firebaseStorageBucket: 'albaniandotdev.firebasestorage.app',
+      firebaseMessagingSenderId: '189842779837',
+      firebaseAppId: '1:189842779837:web:38ac2bfc404c52a69bd1d4',
+      oauthBaseAuthorizeUrl: 'https://accounts.base.al/oauth/authorize',
+      oauthBaseTokenUrl: 'https://accounts.base.al/oauth/token',
+      oauthBaseUserinfoUrl: 'https://accounts.base.al/oauth/userinfo'
     }
   },
 
