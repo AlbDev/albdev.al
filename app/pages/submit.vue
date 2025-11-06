@@ -175,24 +175,40 @@ const repoData = ref(null)
 
 // Fetch communities from Firestore
 onMounted(async () => {
-  const communitiesQuery = query(
-    collection($firestore, 'communities'),
-    orderBy('memberCount', 'desc'),
-    limit(50)
-  )
-  const communitiesSnapshot = await getDocs(communitiesQuery)
-  communities.value = communitiesSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }))
+  try {
+    const communitiesQuery = query(
+      collection($firestore, 'communities'),
+      orderBy('memberCount', 'desc'),
+      limit(50)
+    )
+    const communitiesSnapshot = await getDocs(communitiesQuery)
+    communities.value = communitiesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+
+    if (communities.value.length === 0) {
+      console.warn('⚠️ No communities found. Run: npm run seed')
+    }
+  } catch (error) {
+    console.error('Error loading communities:', error)
+    console.log('💡 Make sure to run: npm run seed')
+  }
 })
 
-const communityOptions = computed(() =>
-  communities.value?.map(c => ({
-    label: `r/${c.name}`,
+const communityOptions = computed(() => {
+  if (!communities.value || communities.value.length === 0) {
+    return [{
+      label: 'No communities yet - Run: npm run seed',
+      value: '',
+      disabled: true
+    }]
+  }
+  return communities.value.map(c => ({
+    label: `c/${c.name}`,
     value: c.id
-  })) || []
-)
+  }))
+})
 
 const postTypes = [
   { value: 'text', label: 'Text', icon: 'i-heroicons-document-text' },
