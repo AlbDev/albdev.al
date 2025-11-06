@@ -12,6 +12,12 @@ export default defineNuxtConfig({
     '@nuxt/ui'
   ],
 
+  ui: {
+    theme: {
+      colors: ['primary', 'secondary', 'teal', 'success', 'warning', 'error']
+    }
+  },
+
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
@@ -27,7 +33,7 @@ export default defineNuxtConfig({
       oauthBaseTokenUrl: 'https://accounts.base.al/oauth/token',
       oauthBaseUserinfoUrl: 'https://accounts.base.al/oauth/userinfo',
       oauthBaseClientId: 'albdev_client_id', // TODO: Replace with actual client ID
-      oauthBaseRedirectUri: 'https://albaniandotdev.web.app/auth/callback' // Update after deployment
+      oauthBaseRedirectUri: 'https://albanian.dev/auth/callback'
     }
   },
 

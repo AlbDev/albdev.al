@@ -6,15 +6,48 @@ import {
   onAuthStateChanged,
   type User
 } from 'firebase/auth'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+
+interface AlbDevUser {
+  uid: string
+  email: string
+  username: string
+  displayName: string
+  avatarUrl?: string
+  bio?: string
+  location?: string
+  website?: string
+  githubUsername?: string
+  twitterHandle?: string
+  reputation: number
+  roles: string[]
+  createdAt: string
+  updatedAt: string
+  lastSeen: string
+  accessToken?: string
+}
 
 export const useAuth = () => {
-  const { $auth } = useNuxtApp()
-  const user = useState<User | null>('user', () => null)
+  const { $auth, $firestore } = useNuxtApp()
+  const user = useState<AlbDevUser | null>('user', () => null)
   const authToken = useState<string | null>('authToken', () => null)
   const route = useRoute()
 
-  // Handle OAuth callback token
+  // Check localStorage for Base.al OAuth user on mount
   onMounted(() => {
+    const storedUser = localStorage.getItem('albdev_user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        user.value = userData
+        authToken.value = userData.accessToken || null
+      } catch (e) {
+        console.error('Failed to parse stored user:', e)
+        localStorage.removeItem('albdev_user')
+      }
+    }
+
+    // Handle OAuth callback token
     const token = route.query.token as string
     if (token) {
       signInWithCustomToken($auth, token).then(() => {
@@ -41,23 +74,33 @@ export const useAuth = () => {
       const credential = await createUserWithEmailAndPassword($auth, email, password)
       const token = await credential.user.getIdToken()
 
-      // Register user in database
-      await $fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: {
-          uid: credential.user.uid,
-          email: credential.user.email!,
-          username,
-          displayName: username
-        }
-      })
+      // Create user in Firestore
+      const now = new Date().toISOString()
+      const userData: AlbDevUser = {
+        uid: credential.user.uid,
+        email: credential.user.email!,
+        username,
+        displayName: username,
+        reputation: 0,
+        roles: ['user'],
+        createdAt: now,
+        updatedAt: now,
+        lastSeen: now,
+      }
 
-      user.value = credential.user
+      const userRef = doc($firestore, 'users', credential.user.uid)
+      await setDoc(userRef, userData)
+
+      user.value = userData
       authToken.value = token
-      return credential.user
+
+      // Store in localStorage
+      localStorage.setItem('albdev_user', JSON.stringify({
+        ...userData,
+        accessToken: token,
+      }))
+
+      return userData
     } catch (error: any) {
       throw new Error(error.message)
     }
@@ -65,9 +108,15 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
-      await firebaseSignOut($auth)
+      // Clear Firebase Auth if signed in
+      if ($auth.currentUser) {
+        await firebaseSignOut($auth)
+      }
+
+      // Clear state and localStorage
       user.value = null
       authToken.value = null
+      localStorage.removeItem('albdev_user')
     } catch (error: any) {
       throw new Error(error.message)
     }

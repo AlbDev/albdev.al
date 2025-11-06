@@ -142,8 +142,23 @@ const handleBaseLogin = () => {
 
     if (event.data.type === 'oauth-success') {
       console.log('OAuth success:', event.data.user)
+
+      // Update auth state with new user
+      const { user } = useAuth()
+      user.value = event.data.user
+
       window.removeEventListener('message', messageHandler)
       popup?.close()
+
+      // Reload page to update UI
+      window.location.reload()
+    } else if (event.data.type === 'oauth-error') {
+      console.error('OAuth error:', event.data.error)
+      window.removeEventListener('message', messageHandler)
+      popup?.close()
+
+      // Show error toast (TODO: add toast notification)
+      alert(`Authentication failed: ${event.data.error}`)
     }
   }
 
