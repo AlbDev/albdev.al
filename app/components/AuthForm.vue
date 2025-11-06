@@ -34,31 +34,31 @@
 
       <!-- Email/Password Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <UFormGroup v-if="isSignUp" label="Username" required>
+        <UFormField v-if="isSignUp" label="Username" required>
           <UInput
             v-model="formData.username"
             placeholder="Enter username"
             icon="i-heroicons-user"
           />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Email" required>
+        <UFormField label="Email" required>
           <UInput
             v-model="formData.email"
             type="email"
             placeholder="Enter email"
             icon="i-heroicons-envelope"
           />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Password" required>
+        <UFormField label="Password" required>
           <UInput
             v-model="formData.password"
             type="password"
             placeholder="Enter password"
             icon="i-heroicons-lock-closed"
           />
-        </UFormGroup>
+        </UFormField>
 
         <UButton
           type="submit"
@@ -84,8 +84,6 @@
 </template>
 
 <script setup lang="ts">
-const emit = defineEmits(['close'])
-
 const { signIn, signUp } = useAuth()
 const isSignUp = ref(false)
 const loading = ref(false)
@@ -105,7 +103,6 @@ const handleSubmit = async () => {
     } else {
       await signIn(formData.email, formData.password)
     }
-    emit('close')
   } catch (error: any) {
     console.error('Auth error:', error)
     // Show error toast
@@ -115,7 +112,41 @@ const handleSubmit = async () => {
 }
 
 const handleBaseLogin = () => {
-  // Redirect to OAuth login endpoint
-  window.location.href = '/api/auth/oauth/base/login'
+  const config = useRuntimeConfig()
+
+  // Build OAuth authorization URL
+  const params = new URLSearchParams({
+    client_id: config.public.oauthBaseClientId,
+    redirect_uri: config.public.oauthBaseRedirectUri,
+    response_type: 'code',
+    scope: 'openid profile email'
+  })
+
+  const authUrl = `${config.public.oauthBaseAuthorizeUrl}?${params.toString()}`
+
+  // Open OAuth popup
+  const width = 600
+  const height = 700
+  const left = (window.screen.width - width) / 2
+  const top = (window.screen.height - height) / 2
+
+  const popup = window.open(
+    authUrl,
+    'Base.al Login',
+    `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no`
+  )
+
+  // Listen for OAuth callback message
+  const messageHandler = (event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return
+
+    if (event.data.type === 'oauth-success') {
+      console.log('OAuth success:', event.data.user)
+      window.removeEventListener('message', messageHandler)
+      popup?.close()
+    }
+  }
+
+  window.addEventListener('message', messageHandler)
 }
 </script>

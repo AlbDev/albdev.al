@@ -7,13 +7,13 @@
 
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <!-- Community Selection -->
-        <UFormGroup label="Community" required>
+        <UFormField label="Community" required>
           <USelect
             v-model="formData.communityId"
             :options="communityOptions"
             placeholder="Choose a community"
           />
-        </UFormGroup>
+        </UFormField>
 
         <!-- Post Type Tabs -->
         <div class="flex gap-2 border-b border-gray-200 dark:border-gray-700">
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Title -->
-        <UFormGroup label="Title" required>
+        <UFormField label="Title" required>
           <UInput
             v-model="formData.title"
             placeholder="An interesting title"
@@ -43,37 +43,37 @@
           <template #hint>
             <span class="text-xs">{{ formData.title.length }}/300</span>
           </template>
-        </UFormGroup>
+        </UFormField>
 
         <!-- Content based on type -->
         <template v-if="formData.type === 'text'">
-          <UFormGroup label="Text (optional)">
+          <UFormField label="Text (optional)">
             <UTextarea
               v-model="formData.content"
               rows="10"
               placeholder="Text (optional)"
             />
-          </UFormGroup>
+          </UFormField>
         </template>
 
         <template v-else-if="formData.type === 'link'">
-          <UFormGroup label="URL" required>
+          <UFormField label="URL" required>
             <UInput
               v-model="formData.url"
               type="url"
               placeholder="https://example.com"
             />
-          </UFormGroup>
+          </UFormField>
         </template>
 
         <template v-else-if="formData.type === 'image'">
-          <UFormGroup label="Image URL" required>
+          <UFormField label="Image URL" required>
             <UInput
               v-model="formData.url"
               type="url"
               placeholder="https://example.com/image.jpg"
             />
-          </UFormGroup>
+          </UFormField>
         </template>
 
         <!-- Submit -->

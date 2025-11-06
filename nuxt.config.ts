@@ -25,7 +25,9 @@ export default defineNuxtConfig({
       firebaseAppId: '1:189842779837:web:38ac2bfc404c52a69bd1d4',
       oauthBaseAuthorizeUrl: 'https://accounts.base.al/oauth/authorize',
       oauthBaseTokenUrl: 'https://accounts.base.al/oauth/token',
-      oauthBaseUserinfoUrl: 'https://accounts.base.al/oauth/userinfo'
+      oauthBaseUserinfoUrl: 'https://accounts.base.al/oauth/userinfo',
+      oauthBaseClientId: 'albdev_client_id', // TODO: Replace with actual client ID
+      oauthBaseRedirectUri: 'https://albaniandotdev.web.app/auth/callback' // Update after deployment
     }
   },
 

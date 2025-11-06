@@ -38,16 +38,24 @@
               </UDropdown>
             </template>
             <template v-else>
-              <UButton
-                @click="showAuthModal = true"
-                variant="ghost"
-                label="Log In"
-              />
-              <UButton
-                @click="showAuthModal = true"
-                color="primary"
-                label="Sign Up"
-              />
+              <UModal>
+                <UButton
+                  variant="ghost"
+                  label="Log In"
+                />
+                <template #content>
+                  <AuthForm />
+                </template>
+              </UModal>
+              <UModal>
+                <UButton
+                  color="primary"
+                  label="Sign Up"
+                />
+                <template #content>
+                  <AuthForm />
+                </template>
+              </UModal>
             </template>
           </div>
         </div>
@@ -58,17 +66,11 @@
     <main>
       <slot />
     </main>
-
-    <!-- Auth Modal -->
-    <UModal v-model="showAuthModal">
-      <AuthForm @close="showAuthModal = false" />
-    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
 const { user, signOut } = useAuth()
-const showAuthModal = ref(false)
 
 const userMenuItems = [
   [{
