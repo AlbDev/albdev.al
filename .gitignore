@@ -31,3 +31,4 @@ ui-debug.log
 
 # Service account
 service-account.json
+api/.env
