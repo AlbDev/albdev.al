@@ -22,7 +22,8 @@ service cloud.firestore {
     // Communities collection
     match /communities/{communityId} {
       allow read: if true;
-      allow create: if isSignedIn();
+      // Allow system seeding OR authenticated user creation
+      allow create: if isSignedIn() || request.resource.data.creatorId == 'system';
       allow update: if isSignedIn() && (
         resource.data.creatorId == request.auth.uid ||
         exists(/databases/$(database)/documents/communityMembers/$(request.auth.uid + '_' + communityId)) &&
