@@ -91,29 +91,25 @@ npm run db:studio
 
 ## Deployment
 
-### Firebase Deployment
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for complete step-by-step deployment guide.
+
+### Quick Deploy
 
 ```bash
-# Build for production
-npm run build
+# Build and deploy
+npm run deploy
 
-# Deploy to Firebase
-firebase deploy
+# Seed communities (after enabling Firestore)
+npm run seed
 ```
 
 ### Required Firebase Services
 
-1. **Authentication** - Enable Email/Password provider
-2. **Cloud Functions** - For server-side rendering
-3. **Hosting** - For static assets
-4. **Storage** (optional) - For image uploads
+1. **Firestore Database** - NoSQL database for all data
+2. **Authentication** - Email/Password + Base.al OAuth
+3. **Hosting** - Static site hosting (FREE tier)
 
-### Cloud SQL Setup
-
-1. Create a Cloud SQL PostgreSQL instance
-2. Create a database
-3. Add connection string to `.env`
-4. Run migrations
+**Note:** This project uses **static site generation** (no Cloud Functions) to stay on Firebase's free tier.
 
 ## Project Structure
 

@@ -16,9 +16,14 @@ npm run build
 
 # 4. Deploy to Firebase
 npm run deploy
+
+# 5. Seed communities (AFTER enabling Firestore - see step below)
+npm run seed
 ```
 
 That's it! Your site will be live at: https://albaniandotdev.web.app
+
+**⚠️ IMPORTANT:** Follow the post-deployment steps below to enable Firestore and Authentication!
 
 ---
 
@@ -58,7 +63,35 @@ That's it! Your site will be live at: https://albaniandotdev.web.app
 
 **Users cannot create posts without communities!**
 
-Option A - Manual (Firebase Console):
+**Option A - Automatic Seeding (RECOMMENDED):**
+
+Run this command on your local machine:
+
+```bash
+npm run seed
+```
+
+This will automatically create 12 communities:
+- General Discussion
+- JavaScript
+- Python
+- Go
+- Rust
+- Mobile Development
+- DevOps & Cloud
+- Project Showcase
+- Jobs & Opportunities
+- Events & Meetups
+- Albania Tech Scene
+- Help & Support
+
+The script is smart - it won't create duplicates if you run it multiple times.
+
+---
+
+**Option B - Manual (Firebase Console):**
+
+If you prefer to create communities manually:
 
 1. Firestore Database → **Start collection**
 2. Collection ID: `communities`

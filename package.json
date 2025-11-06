@@ -9,7 +9,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "deploy": "npm run generate && firebase deploy"
+    "deploy": "npm run generate && firebase deploy",
+    "seed": "node scripts/seed-communities.js"
   },
   "dependencies": {
     "@nuxt/ui": "^3.0.0-alpha.6",
