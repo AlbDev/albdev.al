@@ -34,6 +34,16 @@
 
       <!-- Email/Password Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
+        <!-- Error Alert -->
+        <UAlert
+          v-if="error"
+          color="red"
+          variant="subtle"
+          :title="error"
+          :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+          @close="error = ''"
+        />
+
         <div v-if="isSignUp" class="grid grid-cols-2 gap-4">
           <UFormField label="First Name" required>
             <UInput
@@ -105,6 +115,7 @@
 const { signIn, signUp } = useAuth()
 const isSignUp = ref(false)
 const loading = ref(false)
+const error = ref('')
 
 const formData = reactive({
   first_name: '',
@@ -116,15 +127,23 @@ const formData = reactive({
 
 const handleSubmit = async () => {
   loading.value = true
+  error.value = ''
 
   try {
     if (isSignUp.value) {
       // Validate required fields for signup
       if (!formData.first_name || !formData.last_name || !formData.username) {
-        alert('Please fill in all required fields')
+        error.value = 'Please fill in all required fields'
         loading.value = false
         return
       }
+
+      if (formData.password.length < 8) {
+        error.value = 'Password must be at least 8 characters long'
+        loading.value = false
+        return
+      }
+
       await signUp({
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -132,15 +151,19 @@ const handleSubmit = async () => {
         email: formData.email,
         password: formData.password
       })
+
+      // Success message
+      console.log('✅ Registration successful!')
     } else {
       await signIn(formData.email, formData.password)
+      console.log('✅ Login successful!')
     }
 
     // Redirect to home on success
     await navigateTo('/')
-  } catch (error: any) {
-    console.error('Auth error:', error)
-    alert(`Authentication failed: ${error.message || 'Unknown error'}`)
+  } catch (err: any) {
+    console.error('Auth error:', err)
+    error.value = err.message || 'Authentication failed. Please try again.'
   } finally {
     loading.value = false
   }
@@ -189,11 +212,9 @@ const handleBaseLogin = () => {
       window.location.reload()
     } else if (event.data.type === 'oauth-error') {
       console.error('OAuth error:', event.data.error)
+      error.value = `OAuth failed: ${event.data.error}`
       window.removeEventListener('message', messageHandler)
       popup?.close()
-
-      // Show error toast (TODO: add toast notification)
-      alert(`Authentication failed: ${event.data.error}`)
     }
   }
 
