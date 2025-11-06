@@ -70,5 +70,89 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn() && voteId.matches(request.auth.uid + '_.*');
     }
+
+    // Projects collection
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Jobs collection
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.postedBy == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.postedBy == request.auth.uid;
+    }
+
+    // Events collection
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.organizerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.organizerId == request.auth.uid;
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Messages collection
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid
+      );
+      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.toUserId == request.auth.uid;
+    }
+
+    // Message threads
+    match /messageThreads/{threadId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    // Follows collection
+    match /follows/{followId} {
+      allow read: if true;
+      allow create: if isSignedIn() && followId.matches(request.auth.uid + '_.*');
+      allow delete: if isSignedIn() && resource.data.followerId == request.auth.uid;
+    }
+
+    // Bookmarks collection
+    match /bookmarks/{bookmarkId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if isSignedIn() && bookmarkId.matches(request.auth.uid + '_.*');
+    }
+
+    // User skills
+    match /userSkills/{userId} {
+      allow read: if true;
+      allow write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    // Sponsored posts - MONETIZATION
+    match /sponsoredPosts/{sponsoredPostId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.sponsorId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.sponsorId == request.auth.uid;
+    }
+
+    // Banner ads - MONETIZATION
+    match /bannerAds/{bannerId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.advertiserId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.advertiserId == request.auth.uid;
+    }
   }
 }

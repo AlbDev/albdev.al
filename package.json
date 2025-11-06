@@ -13,16 +13,20 @@
   },
   "dependencies": {
     "@nuxt/ui": "^3.0.0-alpha.6",
+    "@nuxtjs/mdc": "^0.18.2",
     "@vueuse/core": "^11.0.0",
-    "nuxt": "^4.0.0-rc.15",
-    "vue": "^3.5.0",
+    "date-fns": "^4.1.0",
     "firebase": "^11.0.2",
     "firebase-admin": "^13.0.1",
     "h3-zod": "^0.5.3",
+    "marked": "^13.0.3",
+    "nuxt": "^4.0.0-rc.15",
+    "shiki": "^3.14.0",
+    "vue": "^3.5.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "firebase-tools": "^13.27.0"
+    "firebase-tools": "^13.27.0",
+    "typescript": "^5.6.0"
   }
 }

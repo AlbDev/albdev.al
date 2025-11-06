@@ -10,29 +10,37 @@
             <span class="text-xl font-bold">AlbDev</span>
           </NuxtLink>
 
-          <!-- Search -->
-          <div class="flex-1 max-w-2xl mx-8">
-            <UInput
-              placeholder="Search communities, posts..."
-              icon="i-heroicons-magnifying-glass"
-              size="lg"
-            />
-          </div>
+          <!-- Navigation Links -->
+          <nav class="flex items-center gap-4">
+            <NuxtLink to="/trending" class="text-sm hover:text-primary">Trending</NuxtLink>
+            <NuxtLink to="/projects" class="text-sm hover:text-primary">Projects</NuxtLink>
+            <NuxtLink to="/jobs" class="text-sm hover:text-primary">Jobs</NuxtLink>
+            <NuxtLink to="/events" class="text-sm hover:text-primary">Events</NuxtLink>
+            <NuxtLink to="/search" class="text-sm hover:text-primary">
+              <UIcon name="i-heroicons-magnifying-glass" class="w-5 h-5" />
+            </NuxtLink>
+          </nav>
 
           <!-- Actions -->
           <div class="flex items-center gap-3">
             <template v-if="user">
               <UButton
+                to="/notifications"
+                icon="i-heroicons-bell"
+                variant="ghost"
+                size="sm"
+              />
+              <UButton
                 to="/submit"
                 icon="i-heroicons-plus"
                 color="primary"
-                label="Create Post"
+                size="sm"
               />
               <UDropdown :items="userMenuItems">
                 <UAvatar
-                  :src="user.photoURL"
+                  :src="user.avatarUrl"
                   :alt="user.displayName"
-                  size="md"
+                  size="sm"
                   class="cursor-pointer"
                 />
               </UDropdown>
@@ -72,22 +80,31 @@
 <script setup lang="ts">
 const { user, signOut } = useAuth()
 
-const userMenuItems = [
+const userMenuItems = computed(() => [
   [{
     label: 'Profile',
     icon: 'i-heroicons-user',
-    to: `/u/${user.value?.displayName}`
+    to: `/u/${user.value?.username}`
+  }, {
+    label: 'My Projects',
+    icon: 'i-heroicons-cube',
+    to: '/projects'
   }],
   [{
     label: 'Settings',
-    icon: 'i-heroicons-cog-6-tooth'
+    icon: 'i-heroicons-cog-6-tooth',
+    to: '/settings/profile'
+  }, {
+    label: 'Notifications',
+    icon: 'i-heroicons-bell',
+    to: '/notifications'
   }],
   [{
     label: 'Sign Out',
     icon: 'i-heroicons-arrow-right-on-rectangle',
     click: signOut
   }]
-]
+])
 
 // Initialize auth on mount
 onMounted(() => {
