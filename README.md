@@ -6,12 +6,23 @@ A Reddit-like platform for Albanian developers built with Nuxt 4, Nuxt UI 4, and
 
 - 🔥 **Nuxt 4** - Latest version with enhanced performance
 - 🎨 **Nuxt UI 4** - Beautiful, accessible components
-- 🔐 **Multiple Auth Options** - Firebase Email/Password + Base.al OAuth
-- 💾 **Firestore** - Real-time NoSQL database
-- 🚀 **Firebase Hosting** - Serverless deployment
+- 🔌 **Base.al API** - Go-powered REST API backend for authentication
+- 🔐 **JWT Authentication** - Secure token-based authentication
+- 💾 **Firestore** - Real-time NoSQL database for posts/comments
+- 🚀 **Firebase Hosting** - Serverless static site deployment
 - 📱 **Responsive Design** - Works on all devices
 - ⚡ **Real-time Features** - Live updates and interactions
-- 🔗 **OAuth Integration** - Sign in with Base.al (Albanian OAuth provider)
+- 🔗 **OAuth Integration** - Sign in with Base.al (coming soon)
+
+## 🔌 Base.al API Integration
+
+This project uses **Base.al** - a modern Go web framework - as the backend API:
+
+- **Authentication**: JWT-based authentication via Base.al API
+- **User Management**: User profiles and roles managed by Base API
+- **Data Storage**: Firestore for posts, comments, communities
+
+**📚 See [BASE_API_INTEGRATION.md](./BASE_API_INTEGRATION.md) for complete integration guide.**
 
 ## Reddit-like Features
 

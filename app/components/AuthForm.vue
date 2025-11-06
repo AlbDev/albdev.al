@@ -34,11 +34,29 @@
 
       <!-- Email/Password Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
+        <div v-if="isSignUp" class="grid grid-cols-2 gap-4">
+          <UFormField label="First Name" required>
+            <UInput
+              v-model="formData.first_name"
+              placeholder="John"
+              icon="i-heroicons-user"
+            />
+          </UFormField>
+
+          <UFormField label="Last Name" required>
+            <UInput
+              v-model="formData.last_name"
+              placeholder="Doe"
+              icon="i-heroicons-user"
+            />
+          </UFormField>
+        </div>
+
         <UFormField v-if="isSignUp" label="Username" required>
           <UInput
             v-model="formData.username"
-            placeholder="Enter username"
-            icon="i-heroicons-user"
+            placeholder="johndoe"
+            icon="i-heroicons-at-symbol"
           />
         </UFormField>
 
@@ -46,7 +64,7 @@
           <UInput
             v-model="formData.email"
             type="email"
-            placeholder="Enter email"
+            placeholder="john@example.com"
             icon="i-heroicons-envelope"
           />
         </UFormField>
@@ -55,7 +73,7 @@
           <UInput
             v-model="formData.password"
             type="password"
-            placeholder="Enter password"
+            :placeholder="isSignUp ? 'At least 8 characters' : 'Enter password'"
             icon="i-heroicons-lock-closed"
           />
         </UFormField>
@@ -89,6 +107,8 @@ const isSignUp = ref(false)
 const loading = ref(false)
 
 const formData = reactive({
+  first_name: '',
+  last_name: '',
   email: '',
   password: '',
   username: ''
@@ -99,13 +119,28 @@ const handleSubmit = async () => {
 
   try {
     if (isSignUp.value) {
-      await signUp(formData.email, formData.password, formData.username)
+      // Validate required fields for signup
+      if (!formData.first_name || !formData.last_name || !formData.username) {
+        alert('Please fill in all required fields')
+        loading.value = false
+        return
+      }
+      await signUp({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      })
     } else {
       await signIn(formData.email, formData.password)
     }
+
+    // Redirect to home on success
+    await navigateTo('/')
   } catch (error: any) {
     console.error('Auth error:', error)
-    // Show error toast
+    alert(`Authentication failed: ${error.message || 'Unknown error'}`)
   } finally {
     loading.value = false
   }

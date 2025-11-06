@@ -1,18 +1,12 @@
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithCustomToken,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  type User
-} from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import type { BaseUser, BaseAuthResponse, RegisterRequest } from './useBaseApi'
 
 interface AlbDevUser {
-  uid: string
+  id: number
   email: string
   username: string
   displayName: string
+  first_name: string
+  last_name: string
   avatarUrl?: string
   bio?: string
   location?: string
@@ -20,21 +14,48 @@ interface AlbDevUser {
   githubUsername?: string
   twitterHandle?: string
   reputation: number
-  roles: string[]
+  role_id: number
   createdAt: string
   updatedAt: string
-  lastSeen: string
+  lastSeen?: string
   accessToken?: string
 }
 
 export const useAuth = () => {
-  const { $auth, $firestore } = useNuxtApp()
+  const { register, login, logout: baseLogout, getCurrentUser, isAuthenticated } = useBaseApi()
   const user = useState<AlbDevUser | null>('user', () => null)
   const authToken = useState<string | null>('authToken', () => null)
   const route = useRoute()
 
-  // Check localStorage for Base.al OAuth user on mount
+  // Check localStorage for user on mount
   onMounted(() => {
+    // Try Base API user first
+    const baseUser = getCurrentUser()
+    if (baseUser && isAuthenticated()) {
+      // Convert Base user to AlbDev user format
+      user.value = {
+        id: baseUser.id,
+        email: baseUser.email,
+        username: baseUser.username,
+        displayName: `${baseUser.first_name} ${baseUser.last_name}`,
+        first_name: baseUser.first_name,
+        last_name: baseUser.last_name,
+        avatarUrl: baseUser.avatar_url,
+        bio: baseUser.bio,
+        location: baseUser.location,
+        website: baseUser.website,
+        githubUsername: baseUser.github_username,
+        twitterHandle: baseUser.twitter_username,
+        reputation: baseUser.reputation,
+        role_id: baseUser.role_id,
+        createdAt: baseUser.created_at,
+        updatedAt: baseUser.updated_at,
+      }
+      authToken.value = localStorage.getItem('base_access_token')
+      return
+    }
+
+    // Fall back to old OAuth user format
     const storedUser = localStorage.getItem('albdev_user')
     if (storedUser) {
       try {
@@ -46,94 +67,118 @@ export const useAuth = () => {
         localStorage.removeItem('albdev_user')
       }
     }
-
-    // Handle OAuth callback token
-    const token = route.query.token as string
-    if (token) {
-      signInWithCustomToken($auth, token).then(() => {
-        // Remove token from URL
-        const newUrl = window.location.pathname
-        window.history.replaceState({}, '', newUrl)
-      })
-    }
   })
 
   const signIn = async (email: string, password: string) => {
     try {
-      const credential = await signInWithEmailAndPassword($auth, email, password)
-      user.value = credential.user
-      authToken.value = await credential.user.getIdToken()
-      return credential.user
-    } catch (error: any) {
-      throw new Error(error.message)
-    }
-  }
+      const response: BaseAuthResponse = await login({ email, password })
 
-  const signUp = async (email: string, password: string, username: string) => {
-    try {
-      const credential = await createUserWithEmailAndPassword($auth, email, password)
-      const token = await credential.user.getIdToken()
-
-      // Create user in Firestore
-      const now = new Date().toISOString()
+      // Convert Base response to AlbDev format
       const userData: AlbDevUser = {
-        uid: credential.user.uid,
-        email: credential.user.email!,
-        username,
-        displayName: username,
-        reputation: 0,
-        roles: ['user'],
-        createdAt: now,
-        updatedAt: now,
-        lastSeen: now,
+        id: response.user.id,
+        email: response.user.email,
+        username: response.user.username,
+        displayName: `${response.user.first_name} ${response.user.last_name}`,
+        first_name: response.user.first_name,
+        last_name: response.user.last_name,
+        avatarUrl: response.user.avatar_url,
+        bio: response.user.bio,
+        location: response.user.location,
+        website: response.user.website,
+        githubUsername: response.user.github_username,
+        twitterHandle: response.user.twitter_username,
+        reputation: response.user.reputation,
+        role_id: response.user.role_id,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.updated_at,
+        accessToken: response.accessToken,
       }
 
-      const userRef = doc($firestore, 'users', credential.user.uid)
-      await setDoc(userRef, userData)
-
       user.value = userData
-      authToken.value = token
-
-      // Store in localStorage
-      localStorage.setItem('albdev_user', JSON.stringify({
-        ...userData,
-        accessToken: token,
-      }))
+      authToken.value = response.accessToken
 
       return userData
     } catch (error: any) {
-      throw new Error(error.message)
+      throw new Error(error.message || 'Login failed')
+    }
+  }
+
+  const signUp = async (data: RegisterRequest) => {
+    try {
+      const response: BaseAuthResponse = await register(data)
+
+      // Convert Base response to AlbDev format
+      const userData: AlbDevUser = {
+        id: response.user.id,
+        email: response.user.email,
+        username: response.user.username,
+        displayName: `${response.user.first_name} ${response.user.last_name}`,
+        first_name: response.user.first_name,
+        last_name: response.user.last_name,
+        avatarUrl: response.user.avatar_url,
+        bio: response.user.bio,
+        location: response.user.location,
+        website: response.user.website,
+        githubUsername: response.user.github_username,
+        twitterHandle: response.user.twitter_username,
+        reputation: response.user.reputation,
+        role_id: response.user.role_id,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.updated_at,
+        accessToken: response.accessToken,
+      }
+
+      user.value = userData
+      authToken.value = response.accessToken
+
+      return userData
+    } catch (error: any) {
+      throw new Error(error.message || 'Registration failed')
     }
   }
 
   const signOut = async () => {
     try {
-      // Clear Firebase Auth if signed in
-      if ($auth.currentUser) {
-        await firebaseSignOut($auth)
-      }
+      // Call Base API logout
+      await baseLogout()
 
-      // Clear state and localStorage
+      // Clear state
       user.value = null
       authToken.value = null
-      localStorage.removeItem('albdev_user')
     } catch (error: any) {
-      throw new Error(error.message)
+      // Log error but still clear local state
+      console.error('Logout error:', error)
+      user.value = null
+      authToken.value = null
     }
   }
 
-  const initAuth = () => {
-    return new Promise<User | null>((resolve) => {
-      onAuthStateChanged($auth, async (firebaseUser) => {
-        user.value = firebaseUser
-        if (firebaseUser) {
-          authToken.value = await firebaseUser.getIdToken()
-        } else {
-          authToken.value = null
-        }
-        resolve(firebaseUser)
-      })
-    })
+  // Initialize auth - check if user is already logged in
+  const initAuth = async () => {
+    const baseUser = getCurrentUser()
+    if (baseUser && isAuthenticated()) {
+      user.value = {
+        id: baseUser.id,
+        email: baseUser.email,
+        username: baseUser.username,
+        displayName: `${baseUser.first_name} ${baseUser.last_name}`,
+        first_name: baseUser.first_name,
+        last_name: baseUser.last_name,
+        avatarUrl: baseUser.avatar_url,
+        bio: baseUser.bio,
+        location: baseUser.location,
+        website: baseUser.website,
+        githubUsername: baseUser.github_username,
+        twitterHandle: baseUser.twitter_username,
+        reputation: baseUser.reputation,
+        role_id: baseUser.role_id,
+        createdAt: baseUser.created_at,
+        updatedAt: baseUser.updated_at,
+      }
+      authToken.value = localStorage.getItem('base_access_token')
+      return user.value
+    }
+    return null
   }
 
   return {
