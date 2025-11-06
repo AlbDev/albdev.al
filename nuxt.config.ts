@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     '@nuxt/ui'
   ],
 
+  css: ['~/app/assets/css/main.css'],
+
   runtimeConfig: {
     // Public keys (exposed to client) - hardcoded for static build
     public: {
